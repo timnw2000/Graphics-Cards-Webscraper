@@ -233,3 +233,4 @@ class Webscraper:
                 self._results.pop(index)
 
         return self._results
+    
