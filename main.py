@@ -38,12 +38,12 @@ def main():
 
     #for each graphics card in results send a whatsapp message with the graphics card details 
 
-    whatsapp = whatsapp_operations.WhatsAppAPI(instance_id="7103879645", api_key="f6bd92a04c634ba18277df578a753341c4461bad7b3b435cae")    
+    whatsapp = whatsapp_operations.WhatsAppAPI(instance_id="<instance_id_from_greenApi>", api_key="<api_key_from_greenApi>")    
     for card in results:
         
         name, price, link = card
         message = f"New lowest Price for {name}\n\nPrice: {price}€\n\nLink: {link}"
-        whatsapp.send_message(message, "4915733883576")
+        whatsapp.send_message(message, "<chat_id")
 
     
     print(time.time() - start)
