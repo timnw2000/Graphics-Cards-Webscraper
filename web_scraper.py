@@ -228,7 +228,7 @@ class Webscraper:
             return None
 
         for index, card in enumerate(self._results):
-            name, price, link = card
+            __, price, _ = card
             if price < 300:
                 self._results.pop(index)
 
