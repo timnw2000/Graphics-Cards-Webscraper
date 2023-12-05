@@ -48,21 +48,21 @@ The Chat_id looks smothing like this:
 ---
 This short example shows how to use the script.
 
-1 Type in graphics card model
+1 - Type in graphics card model
 
     Which Graphics Card do you want: rtx 4080
 
-2 Waiting for script to do it's thing (takes up to one minute)
+2 - Waiting for script to do it's thing (takes up to one minute)
 
-3 Type in Instance_id from GreenApi
+3 - Type in Instance_id from GreenApi
 
     Instance_id from GreenAPI: 7823477410
 
-4 Type in Api_key from GreenApi
+4 - Type in Api_key from GreenApi
 
     Api_Key from GreenAPI: 6ff92a04c777ab131957df988a753341c4409ce37b3b123cae
 
-5 Type in your chat_id
+5 - Type in your chat_id
 
     Chat_id from GreenAPI (usually your phone number +49 111222333444 -> chat_id 49111222333444): 491575568987654
 
