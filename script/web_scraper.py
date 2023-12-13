@@ -1,7 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
-import re
 
+import re
+import threading
 
 
 
@@ -11,6 +12,7 @@ class Webscraper:
         self.search_modell = None
         self.graphic_cards = []
         self._results = []
+        self.lock = threading.Lock()
 
 
 
@@ -83,7 +85,8 @@ class Webscraper:
                 
                 #appending builder_name, name_product and price to products as a tuple
                 if ((name_product, price, link) not in self.graphic_cards) and self.check_products(name_product, search_input): 
-                    self.graphic_cards.append((name_product, price, link))
+                    with self.lock:
+                        self.graphic_cards.append((name_product, price, link))
 
             count += 1
         
@@ -134,7 +137,8 @@ class Webscraper:
 
 
                 if ((name_product, price, link) not in self.graphic_cards) and self.check_products(name_product, search_input):
-                    self.graphic_cards.append((name_product, price, link))
+                    with self.lock:
+                        self.graphic_cards.append((name_product, price, link))
 
             count += 1
         
@@ -177,7 +181,8 @@ class Webscraper:
                     .replace(",", ".")
                 )
                 if ((name_product, price, link) not in self.graphic_cards) and self.check_products(name_product, search_input):
-                    self.graphic_cards.append((name_product, price, link))
+                    with self.lock:
+                        self.graphic_cards.append((name_product, price, link))
                 
             count += 1
 

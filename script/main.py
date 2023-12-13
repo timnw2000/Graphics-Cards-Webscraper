@@ -1,7 +1,7 @@
 import os
 import threading
 import time
-
+from concurrent.futures import ThreadPoolExecutor
 from cryptography.fernet import Fernet
 
 import web_scraper
@@ -19,21 +19,10 @@ def main():
     #get input (which graphics card)
     scraper.get_input()
 
-    #start first thread for searching first website
-    t1 = threading.Thread(target=scraper.webscrape_mindfactory, daemon=True)
-    t1.start()
-
-    #start second thread for searching second website
-    t2 = threading.Thread(target=scraper.webscrape_alternate, daemon=True)
-    t2.start()
-    
-    #start searching in main thread for third website
-    scraper.webscrape_arlt()
-
-    #waiting for the threads to execute
-    t1.join()
-    t2.join()
-
+    with ThreadPoolExecutor() as executor:
+        executor.submit(scraper.webscrape_mindfactory)
+        executor.submit(scraper.webscrape_mindfactory)
+        executor.submit(scraper.webscrape_mindfactory)
     #storing the results of the search with the given input in the results variable
     results = scraper.results(quantity=3)
     
