@@ -1,7 +1,8 @@
 import os
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
+from concurrent.futures import ProcessPoolExecutor
 from cryptography.fernet import Fernet
 
 import web_scraper
@@ -12,22 +13,25 @@ import whatsapp_operations
 
 
 def main():
+    start = time.time()
+    urls1 = web_scraper.get_alternate_urls()
+    urls2 = web_scraper.get_arlt_urls()
+    urls3 = web_scraper.get_mindfactory_urls()
+    with ProcessPoolExecutor() as executor:
+        process1 = executor.submit(web_scraper.webscrape_alternate, web_scraper.alternate_thread, urls1)
+        process2 = executor.submit(web_scraper.webscrape_arlt, web_scraper.arlt_thread, urls2)
+        process3 = executor.submit(web_scraper.webscrape_mindfactory, web_scraper.mindfactory_thread, urls3)
+        
+        all_cards = process1.result() + process2.result() + process3.result()
+        
 
-    #create Webscraper Object
-    scraper = web_scraper.Webscraper()
+    found_cards = web_scraper.results(all_cards)
 
-    #get input (which graphics card)
-    scraper.get_input()
 
-    with ThreadPoolExecutor() as executor:
-        executor.submit(scraper.webscrape_mindfactory)
-        executor.submit(scraper.webscrape_mindfactory)
-        executor.submit(scraper.webscrape_mindfactory)
-    #storing the results of the search with the given input in the results variable
-    results = scraper.results(quantity=3)
-    
-    
-    
+
+
+
+
     if os.path.exists("./token.txt"):
         access = []
         with open("token.txt", "rb") as token:
@@ -56,7 +60,7 @@ def main():
     
 
     #for each graphics card in results send a whatsapp message with the graphics card details 
-    for card in results:
+    for card in found_cards:
         
         name, price, link = card
         message = f"New lowest Price for {name}\n\nPrice: {price}€\n\nLink: {link}"
@@ -64,9 +68,8 @@ def main():
 
         whatsapp.send_message(message, f"{access[3].decode()}")
 
-    
 
-
+    print(time.time() - start)
 
 if __name__ == "__main__":
     main()
