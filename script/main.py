@@ -9,7 +9,8 @@ import web_scraper
 import whatsapp_operations
 
 
-
+splitted = input("Which Graphics Card do you want to find: ").lower().split(" ")
+search_input = [word.strip() for word in splitted]
 
 
 def main():

@@ -13,7 +13,6 @@ import whatsapp_operations
 lock1 = threading.Lock()
 lock2 = threading.Lock()
 lock3 = threading.Lock()
-graphic_cards = []
 
 
 def main():
@@ -31,6 +30,7 @@ def main():
 
     found_cards = results(all_cards)
     print(found_cards)
+
 
 
 def check_products(name_product, search_input) -> bool:
@@ -63,8 +63,8 @@ def get_alternate_urls():
 
 def alternate_thread(alternate_url):
     global lock1
-    cards = []
     search_input = ["rtx", "4080"]
+    cards = []
     html = requests.get(alternate_url).text
 
     soup = BeautifulSoup(html, "html.parser")
@@ -132,8 +132,8 @@ def get_arlt_urls():
 
 def arlt_thread(arlt_url):
     global lock3
-    cards = []
     search_input = ["rtx", "4080"]
+    cards = []
     html = requests.get(arlt_url).text
     soup = BeautifulSoup(html, "html.parser")
     products = soup.find_all("a", "productTitle")
@@ -194,8 +194,8 @@ def get_mindfactory_urls():
 
 def mindfactory_thread(mindfactory_url):
     global lock2
-    cards = []
     search_input = ["rtx", "4080"]
+    cards = []
     
     html = requests.get(mindfactory_url).text
 
