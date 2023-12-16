@@ -28,10 +28,6 @@ def main():
     found_cards = web_scraper.results(all_cards)
 
 
-
-
-
-
     if os.path.exists("./token.txt"):
         access = []
         with open("token.txt", "rb") as token:
