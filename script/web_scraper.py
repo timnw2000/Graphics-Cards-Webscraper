@@ -10,9 +10,6 @@ import threading
 
 import whatsapp_operations
 
-lock1 = threading.Lock()
-lock2 = threading.Lock()
-lock3 = threading.Lock()
 
 
 def main():
@@ -29,9 +26,6 @@ class Webscraper:
         self.urls1 = self.get_alternate_urls()
         self.urls2 = self.get_arlt_urls()
         self.urls3 = self.get_mindfactory_urls()
-        self.lock1 = threading.Lock()
-        self.lock2 = threading.Lock()
-        self.lock3 = threading.Lock()
         self.all_cards = self.run()
 
 
@@ -103,8 +97,7 @@ class Webscraper:
             name_product = name.group(1)
             #appending builder_name, name_product and price to products as a tuple
             if self.check_products(name_product) and (name_product, price, link) not in cards: 
-                with self.lock1:
-                    cards.append((name_product, price, link))
+                cards.append((name_product, price, link))
         return cards
                     
 
@@ -160,8 +153,7 @@ class Webscraper:
                 .replace(",", ".")
             )
             if self.check_products(name_product) and (name_product, price, link) not in cards:
-                with self.lock3:
-                    cards.append((name_product, price, link))
+                cards.append((name_product, price, link))
         return cards
 
 
@@ -219,8 +211,7 @@ class Webscraper:
             price = price.group(1)
             price = float(price.replace("-", "").replace("*", "").replace("</span>", "").replace(".", "_").replace(",", "."))
             if self.check_products(name_product) and (name_product, price, link) not in cards:
-                with self.lock2:
-                    cards.append((name_product, price, link))
+                cards.append((name_product, price, link))
         return cards
 
 
