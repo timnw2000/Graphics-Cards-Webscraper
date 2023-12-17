@@ -1,7 +1,8 @@
 import os
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
+from concurrent.futures import ProcessPoolExecutor
 from cryptography.fernet import Fernet
 
 import web_scraper
@@ -9,25 +10,12 @@ import whatsapp_operations
 
 
 
-
-
 def main():
+    start = time.time()
+    webscraper = web_scraper.Webscraper()
+    results = webscraper.results()
 
-    #create Webscraper Object
-    scraper = web_scraper.Webscraper()
 
-    #get input (which graphics card)
-    scraper.get_input()
-
-    with ThreadPoolExecutor() as executor:
-        executor.submit(scraper.webscrape_mindfactory)
-        executor.submit(scraper.webscrape_mindfactory)
-        executor.submit(scraper.webscrape_mindfactory)
-    #storing the results of the search with the given input in the results variable
-    results = scraper.results(quantity=3)
-    
-    
-    
     if os.path.exists("./token.txt"):
         access = []
         with open("token.txt", "rb") as token:
@@ -64,9 +52,8 @@ def main():
 
         whatsapp.send_message(message, f"{access[3].decode()}")
 
-    
 
-
+    print(time.time() - start)
 
 if __name__ == "__main__":
     main()

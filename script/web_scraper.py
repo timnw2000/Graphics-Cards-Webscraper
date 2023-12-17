@@ -1,42 +1,113 @@
 import requests
 from bs4 import BeautifulSoup
+from cryptography.fernet import Fernet
 
+import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+import os
 import re
 import threading
 
+import whatsapp_operations
+
+lock1 = threading.Lock()
+lock2 = threading.Lock()
+lock3 = threading.Lock()
 
 
+def main():
 
+    webscraper = Webscraper()
+    result = webscraper.results()
+    print(result)
 class Webscraper:
     def __init__(self):
-        self.search_modell = None
-        self.graphic_cards = []
-        self._results = []
-        self.lock = threading.Lock()
+        self.search_input = self.get_input()
 
+        self.urls1 = self.get_alternate_urls()
+        self.urls2 = self.get_arlt_urls()
+        self.urls3 = self.get_mindfactory_urls()
 
+        self.all_cards = self.run()
 
+    def get_input(self):
+        raw_input = input("What do Graphics Card do you want: ").strip().split(" ")
+        clean_input = [word.strip() for word in raw_input]
+        return clean_input
     
-    def get_input(self) -> list[str]:
-        """
-        Ask for user input\n
-        Split user input into a list\n
-        Each element represents one word in the users input
-        """
-        user_input = input("Which Graphics Card do you want: ")
-        #strip leading and ending whitespaces and turn the input into a list with words as elements
-        user_input = user_input.lower().strip().split()
-        #cleanup elements in the list
-        for element in user_input:
-            element = element.strip()
-        #return list
-        self.search_modell = user_input
-        return user_input
-    
-
+    def run(self):
+        with ProcessPoolExecutor() as executor:
+            process1 = executor.submit(self.webscrape_alternate, self.alternate_thread)
+            process2 = executor.submit(self.webscrape_arlt, self.arlt_thread)
+            process3 = executor.submit(self.webscrape_mindfactory, self.mindfactory_thread)
+            
+            all_cards = process1.result() + process2.result() + process3.result()
+        return all_cards
 
         
-    def webscrape_alternate(self):
+    def check_products(self, name_product) -> bool:
+        """
+        Check if the given user input is somewhere included in the graphics card name.
+        If yes return true otherwise return false.
+        """
+        check = True
+        for i in range(len(self.search_input)):
+            if self.search_input[i] not in name_product.lower():
+                check = False
+                
+        return check
+
+    def get_alternate_urls(self):
+        urls = []
+        url = "https://www.alternate.de/Grafikkarten"
+        count = 0
+        scan_pages = 16
+
+        while True:
+            if count > scan_pages:
+                break
+            if count > 0:
+                url = f"https://www.alternate.de/Grafikkarten?page={count}"
+                urls.append(url)
+            count += 1
+        return urls
+
+
+    def alternate_thread(self, alternate_url):
+        global lock1
+        search_input = ["rtx", "4080"]
+        cards = []
+        html = requests.get(alternate_url).text
+
+        soup = BeautifulSoup(html, "html.parser")
+        product_names = soup.find_all("div", "product-name font-weight-bold")
+        product_prices = soup.find_all("span", "price")
+        product_links = soup.find_all("a", "card align-content-center productBox boxCounter text-font")
+        
+        for name, price, link in zip(product_names, product_prices, product_links):
+            name = re.search(r'^<div class="product-name font-weight-bold"><span>(?:.*)</span>(.*)</div>$', str(name))
+            price = re.search(r'^<span class="price">(.*)</span>$', str(price))
+
+            #get links from the a tags store it in links
+            link = link.get("href")
+            
+            #cleanup prices data -> remove € prefix, replace , with . and split the string at .
+            #only take the first two elements of list into account join on .
+            #convert price string into float into a float
+            price = price.group(1).replace("€ ", "").replace(".", "_").replace(",", ".")
+            price = float(price)
+
+            #split the name variable into two variables
+            name_product = name.group(1)
+            #appending builder_name, name_product and price to products as a tuple
+            if self.check_products(name_product) and (name_product, price, link) not in cards: 
+                with lock1:
+                    cards.append((name_product, price, link))
+        
+        return cards
+                    
+        
+    def webscrape_alternate(self, alternate_thread):
 
         """
         Webscraper for graphics cards on alternate.de\n
@@ -44,117 +115,22 @@ class Webscraper:
         But only appending the graphics cards that meet the requiered input to the graphic_cards attribute
         """
 
-        url = "https://www.alternate.de/Grafikkarten"
-        search_input = self.search_modell 
-        products = []
-        count = 0
-        scan_pages = 16
-        repeat_counter = 0
-
-        while True:
-            if count > scan_pages:
-                break
-            if count > 0:
-                url = f"https://www.alternate.de/Grafikkarten?page={count}"
-
-            html = requests.get(url).text
-
-            soup = BeautifulSoup(html, "html.parser")
-            product_names = soup.find_all("div", "product-name font-weight-bold")
-            product_prices = soup.find_all("span", "price")
-            product_links = soup.find_all("a", "card align-content-center productBox boxCounter text-font")
+        print("Start 1st process")
+        with ThreadPoolExecutor() as executor:
+            threads = executor.map(alternate_thread, self.urls1)
+            cards = []
+            for process in threads:
+                for card in process:
+                    cards.append(card)
             
-            for name, price, link in zip(product_names, product_prices, product_links):
-                name = re.search(r'^<div class="product-name font-weight-bold"><span>(?:.*)</span>(.*)</div>$', str(name))
-                price = re.search(r'^<span class="price">(.*)</span>$', str(price))
-
-
-                #get links from the a tags store it in links
-                link = link.get("href")
-                
-                #cleanup prices data -> remove € prefix, replace , with . and split the string at .
-                #only take the first two elements of list into account join on .
-                #convert price string into float into a float
-                price = price.group(1).replace("€ ", "").replace(".", "_").replace(",", ".")
-                price = float(price)
-
-
-                #split the name variable into two variables
-                name_product = name.group(1)
-                
-                
-                #appending builder_name, name_product and price to products as a tuple
-                if ((name_product, price, link) not in self.graphic_cards) and self.check_products(name_product, search_input): 
-                    with self.lock:
-                        self.graphic_cards.append((name_product, price, link))
-
-            count += 1
+        print("Finish 1st process")
+        return cards
+        
         
 
-
-
-    def webscrape_mindfactory(self):
-
-        """
-        Webscraper for graphics cards on mindfactory.de\n
-        Runs through all pages and scrapes all graphics cards,\n
-        But only appending the graphics cards that meet the requiered input to the graphic_cards attribute.
-        """
-
-        count = 0
-        
-        search_input = self.search_modell
-        scan_pages = 8
-        url = "https://www.mindfactory.de/Hardware/Grafikkarten+(VGA).html"
-
-        while True:
-            if count > scan_pages:
-                break
-            if count > 0:
-                    url = f"https://www.mindfactory.de/Hardware/Grafikkarten+(VGA).html/page/{count+1}"
-
-            html = requests.get(url).text
-
-            soup = BeautifulSoup(html, "html.parser")
-            product_names = soup.find_all("div", "pname")
-            product_prices = soup.find_all("div", "pprice")
-            links = soup.find_all("div", "pcontent")
-
-            product_links = []
-            for link in links:
-                s = BeautifulSoup(str(link), "html.parser")
-                link = s.find("a")['href']
-                product_links.append(link)
-            
-
-            for name, price, link in zip(product_names, product_prices, product_links):
-                name = re.search(r'^<div class="pname">(.+)</div>$', str(name))
-                name_product = name.group(1)
-
-                price = re.search(r'^<div class="pprice">.*<span class="text-currency">.*</span>(.+)</div>$', str(price))
-                price = price.group(1)
-                price = float(price.replace("-", "").replace("*", "").replace("</span>", "").replace(".", "_").replace(",", "."))
-
-
-                if ((name_product, price, link) not in self.graphic_cards) and self.check_products(name_product, search_input):
-                    with self.lock:
-                        self.graphic_cards.append((name_product, price, link))
-
-            count += 1
-        
-
-
-
-    def webscrape_arlt(self):
-
-        """
-        Webscraper for graphics cards on mindfactory.de\n
-        Runs through all pages and scrapes all graphics cards,\n
-        but only appending the graphics cards that meet the requiered input to the graphic_cards attribute.
-        """
-
+    def get_arlt_urls(self):
+        urls = []
         scan_pages = 29
-        search_input = self.search_modell
         count = 0
         url = "https://www.arlt.com/Hardware/PC-Komponenten/Grafikkarten/"
         while True:
@@ -162,47 +138,126 @@ class Webscraper:
                 break
             if count > 0:
                 url = f"https://www.arlt.com/Hardware/PC-Komponenten/Grafikkarten/?pgNr={count}"
-
-            html = requests.get(url).text
-            soup = BeautifulSoup(html, "html.parser")
-            products = soup.find_all("a", "productTitle")
-            prices = soup.find_all("span", "lead price text-nowrap")
-            
-            for product, price in zip(products, prices):
-                link = product.get("href")
-
-                name_product = product.get_text().strip().lower()
-
-                price = float(price.get_text()
-                    .strip()
-                    .lower()
-                    .replace("€", "")
-                    .replace(".", "_")
-                    .replace(",", ".")
-                )
-                if ((name_product, price, link) not in self.graphic_cards) and self.check_products(name_product, search_input):
-                    with self.lock:
-                        self.graphic_cards.append((name_product, price, link))
-                
+                urls.append(url)
             count += 1
+        return urls
 
+    def arlt_thread(self, arlt_url):
+        global lock3
+        search_input = ["rtx", "4080"]
+        cards = []
+        html = requests.get(arlt_url).text
+        soup = BeautifulSoup(html, "html.parser")
+        products = soup.find_all("a", "productTitle")
+        prices = soup.find_all("span", "lead price text-nowrap")
+        
+        for product, price in zip(products, prices):
+            link = product.get("href")
 
+            name_product = product.get_text().strip().lower()
 
+            price = float(price.get_text()
+                .strip()
+                .lower()
+                .replace("€", "")
+                .replace(".", "_")
+                .replace(",", ".")
+            )
+            if self.check_products(name_product) and (name_product, price, link) not in cards:
+                with lock3:
+                    cards.append((name_product, price, link))
+        return cards
 
-    def check_products(self, name_product, search_input) -> bool:
+    def webscrape_arlt(self, arlt_thread):
+
         """
-        Check if the given user input is somewhere included in the graphics card name.
-        If yes return true otherwise return false.
+        Webscraper for graphics cards on mindfactory.de\n
+        Runs through all pages and scrapes all graphics cards,\n
+        but only appending the graphics cards that meet the requiered input to the graphic_cards attribute.
         """
+        print("Start 2st process")
+        with ThreadPoolExecutor() as executor:
+            threads = executor.map(arlt_thread, self.urls2)
+            cards = []
+            for process in threads:
+                for card in process:
+                    cards.append(card)
+            
+        print("Finish 2st process")
+        return cards
 
-        check = True
-        for i in range(len(search_input)):
-            if search_input[i] not in name_product.lower():
-                check = False
-                
-        return check
 
-    
+    def get_mindfactory_urls(self):
+        urls = []
+        count = 0
+        scan_pages = 8
+        url = "https://www.mindfactory.de/Hardware/Grafikkarten+(VGA).html"
+
+        while True:
+            if count > scan_pages:
+                break
+            if count > 0:
+                url = f"https://www.mindfactory.de/Hardware/Grafikkarten+(VGA).html/page/{count+1}"
+                urls.append(url)
+            count += 1
+        
+        return urls
+
+
+    def mindfactory_thread(self, mindfactory_url):
+        global lock2
+        search_input = ["rtx", "4080"]
+        cards = []
+        
+        html = requests.get(mindfactory_url).text
+
+        soup = BeautifulSoup(html, "html.parser")
+        product_names = soup.find_all("div", "pname")
+        product_prices = soup.find_all("div", "pprice")
+        links = soup.find_all("div", "pcontent")
+
+        product_links = []
+        for link in links:
+            s = BeautifulSoup(str(link), "html.parser")
+            link = s.find("a")['href']
+            product_links.append(link)
+        
+
+        for name, price, link in zip(product_names, product_prices, product_links):
+            name = re.search(r'^<div class="pname">(.+)</div>$', str(name))
+            name_product = name.group(1)
+
+            price = re.search(r'^<div class="pprice">.*<span class="text-currency">.*</span>(.+)</div>$', str(price))
+            price = price.group(1)
+            price = float(price.replace("-", "").replace("*", "").replace("</span>", "").replace(".", "_").replace(",", "."))
+
+
+            if self.check_products(name_product) and (name_product, price, link) not in cards:
+                with lock2:
+                    cards.append((name_product, price, link))
+        
+        return cards
+
+
+    def webscrape_mindfactory(self, mindfactory_thread):
+
+        """
+        Webscraper for graphics cards on mindfactory.de\n
+        Runs through all pages and scrapes all graphics cards,\n
+        But only appending the graphics cards that meet the requiered input to the graphic_cards attribute.
+        """
+        print("Start 3st process")
+        
+        with ThreadPoolExecutor() as executer:
+            threads = executer.map(mindfactory_thread, self.urls3)
+            cards = []
+            for process in threads:
+                for card in process:
+                    cards.append(card)
+
+        print("Finished 3st process")
+
+        return cards
 
 
     def results(self, quantity=3) -> (list[tuple] | None):
@@ -214,28 +269,35 @@ class Webscraper:
         Lastly remove every Item from the _results attribute, that costs less than 300€,\n
         because most of the time those items aren't graphics cards, but accesories.
         """
-
-        if self.graphic_cards:
+        cheapest_cards = []
+        if self.all_cards:
             
-            if len(self.graphic_cards) > quantity:
-                for index, card in enumerate(sorted(self.graphic_cards, key=lambda card: card[1])):
+            if len(self.all_cards) > quantity:
+                for index, card in enumerate(sorted(self.all_cards, key=lambda card: card[1])):
                     if index > (quantity - 1):
                         break
-                    self._results.append(card)
+                    cheapest_cards.append(card)
 
             else:
-                for index, card in enumerate(sorted(self.graphic_cards, key=lambda card: card[1])):
-                    if len(self.graphic_cards) == (index - 1):
+                for index, card in enumerate(sorted(self.all_cards, key=lambda card: card[1])):
+                    if len(self.all_cards) == (index - 1):
                         break
-                    self._results.append(card)
+                    cheapest_cards.append(card)
         else:
             print("No results found.")
             return None
 
-        for index, card in enumerate(self._results):
+        for index, card in enumerate(cheapest_cards):
             __, price, _ = card
             if price < 300:
-                self._results.pop(index)
+                cheapest_cards.pop(index)
 
-        return self._results
-    
+        return cheapest_cards
+
+
+
+
+
+
+if __name__ == "__main__":
+    main()
