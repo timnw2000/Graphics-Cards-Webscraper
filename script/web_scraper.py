@@ -42,7 +42,10 @@ class Webscraper:
             process1 = executor.submit(self.webscrape_alternate, self.alternate_thread)
             process2 = executor.submit(self.webscrape_arlt, self.arlt_thread)
             process3 = executor.submit(self.webscrape_mindfactory, self.mindfactory_thread)
-            all_cards = process1.result() + process2.result() + process3.result()
+            result1 = process1.result()
+            result2 = process2.result()
+            result3 = process3.result()
+        all_cards = result1 + result2 + result3
         return all_cards
 
         
@@ -242,18 +245,18 @@ class Webscraper:
         Lastly remove every Item from the _results attribute, that costs less than 300€,\n
         because most of the time those items aren't graphics cards, but accesories.
         """
-        cheapest_cards = []
+        cheapest_cards = set()
         if self.all_cards:
             if len(self.all_cards) > quantity:
                 for index, card in enumerate(sorted(self.all_cards, key=lambda card: card[1])):
-                    if index > (quantity - 1):
+                    if len(cheapest_cards) > (quantity - 1):
                         break
-                    cheapest_cards.append(card)
+                    cheapest_cards.add(card)
             else:
                 for index, card in enumerate(sorted(self.all_cards, key=lambda card: card[1])):
                     if len(self.all_cards) == (index - 1):
                         break
-                    cheapest_cards.append(card)
+                    cheapest_cards.add(card)
         else:
             print("No results found.")
             return None
@@ -261,6 +264,8 @@ class Webscraper:
             __, price, _ = card
             if price < 300:
                 cheapest_cards.pop(index)
+        cheapest_cards = list(cheapest_cards)
+        cheapest_cards.sort(key=lambda x: x[1])
         return cheapest_cards
 
 
