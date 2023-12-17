@@ -9,24 +9,11 @@ import web_scraper
 import whatsapp_operations
 
 
-splitted = input("Which Graphics Card do you want to find: ").lower().split(" ")
-search_input = [word.strip() for word in splitted]
-
 
 def main():
     start = time.time()
-    urls1 = web_scraper.get_alternate_urls()
-    urls2 = web_scraper.get_arlt_urls()
-    urls3 = web_scraper.get_mindfactory_urls()
-    with ProcessPoolExecutor() as executor:
-        process1 = executor.submit(web_scraper.webscrape_alternate, web_scraper.alternate_thread, urls1)
-        process2 = executor.submit(web_scraper.webscrape_arlt, web_scraper.arlt_thread, urls2)
-        process3 = executor.submit(web_scraper.webscrape_mindfactory, web_scraper.mindfactory_thread, urls3)
-        
-        all_cards = process1.result() + process2.result() + process3.result()
-        
-
-    found_cards = web_scraper.results(all_cards)
+    webscraper = web_scraper.Webscraper()
+    results = webscraper.results()
 
 
     if os.path.exists("./token.txt"):
@@ -57,7 +44,7 @@ def main():
     
 
     #for each graphics card in results send a whatsapp message with the graphics card details 
-    for card in found_cards:
+    for card in results:
         
         name, price, link = card
         message = f"New lowest Price for {name}\n\nPrice: {price}€\n\nLink: {link}"
